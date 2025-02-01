@@ -274,6 +274,7 @@ export function SearchFilters() {
                           numberOfMonths={2}
                           defaultMonth={filters.checkIn || new Date()}
                           fromDate={new Date()}
+                          showOutsideDays={false}
                           modifiers={{
                             selected: [
                               filters.checkIn,
@@ -627,7 +628,10 @@ export function SearchFilters() {
                       <div className="aspect-video relative">
                         {searchResults[0].airbnb.cheapest["Picture"] ? (
                           <Image
-                            src={searchResults[0].airbnb.cheapest["Picture"]}
+                            src={
+                              searchResults[0].airbnb.cheapest["Picture"] ||
+                              "/placeholder.svg"
+                            }
                             alt={
                               searchResults[0].airbnb.cheapest["Name"] ||
                               "Imagen no disponible"
@@ -760,7 +764,10 @@ export function SearchFilters() {
                       <div className="aspect-video relative">
                         {searchResults[0].booking.cheapest["Picture"] ? (
                           <Image
-                            src={searchResults[0].booking.cheapest["Picture"]}
+                            src={
+                              searchResults[0].booking.cheapest["Picture"] ||
+                              "/placeholder.svg"
+                            }
                             alt={
                               searchResults[0].booking.cheapest["Name"] ||
                               "Imagen no disponible"
