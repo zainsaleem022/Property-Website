@@ -6,7 +6,6 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 export default function Home() {
-  const [isLoading, setIsLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const router = useRouter();
 
@@ -37,12 +36,6 @@ export default function Home() {
     }
   }, [router]);
 
-  const handleSearch = async () => {
-    setIsLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    setIsLoading(false);
-  };
-
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -65,7 +58,7 @@ export default function Home() {
             </div>
           )}
 
-          <SearchFilters onSearch={handleSearch} isLoading={isLoading} />
+          <SearchFilters />
         </div>
       </main>
     </div>

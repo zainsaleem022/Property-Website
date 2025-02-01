@@ -23,11 +23,6 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "../components/ui/tabs";
 import Image from "next/image";
 
-interface SearchFiltersProps {
-  onSearch: (filters: SearchFilters) => void;
-  isLoading: boolean;
-}
-
 export interface SearchFilters {
   destination: string;
   checkIn: Date | undefined;
@@ -68,7 +63,7 @@ interface SearchResult {
   };
 }
 
-const propertyTypeMapping = {
+const propertyTypeMapping: { [key: string]: string } = {
   Casa: "house",
   Apartamento: "apartment",
   "Casa de huéspedes": "guesthouse",
@@ -103,7 +98,7 @@ const generateWhatsAppLink = (listing: Listing, filters: SearchFilters) => {
   return `https://api.whatsapp.com/send?phone=34910916791&text=${message}`;
 };
 
-export function SearchFilters({ onSearch, isLoading }: SearchFiltersProps) {
+export function SearchFilters() {
   const [filters, setFilters] = useState<SearchFilters>({
     destination: "",
     checkIn: undefined,
@@ -119,11 +114,10 @@ export function SearchFilters({ onSearch, isLoading }: SearchFiltersProps) {
     bathrooms: 1,
     hasPool: false,
   });
-
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [dateSelection, setDateSelection] = useState<"start" | "end">("start");
-
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (
@@ -168,36 +162,24 @@ export function SearchFilters({ onSearch, isLoading }: SearchFiltersProps) {
   };
 
   const handleSearch = async () => {
+    setIsLoading(true);
+
+    const translatedPropertyTypes = filters.propertyType.map(
+      (type) => propertyTypeMapping[type] || type
+    );
+
+    const payload = {
+      ...filters,
+      propertyType: translatedPropertyTypes,
+      checkIn: filters.checkIn
+        ? { date: filters.checkIn.toISOString() }
+        : undefined,
+      checkOut: filters.checkOut
+        ? { date: filters.checkOut.toISOString() }
+        : undefined,
+    };
+
     try {
-      onSearch(filters);
-
-      const translatedPropertyTypes = filters.propertyType.map(
-        (type) =>
-          propertyTypeMapping[type as keyof typeof propertyTypeMapping] || type
-      );
-
-      const payload = {
-        ...filters,
-        propertyType: translatedPropertyTypes,
-        bathrooms: filters.bathrooms,
-        checkIn: filters.checkIn
-          ? {
-              full: format(filters.checkIn, "yyyy-MM-dd"),
-              month: filters.checkIn.getMonth() + 1,
-              day: filters.checkIn.getDate(),
-              year: filters.checkIn.getFullYear(),
-            }
-          : null,
-        checkOut: filters.checkOut
-          ? {
-              full: format(filters.checkOut, "yyyy-MM-dd"),
-              month: filters.checkOut.getMonth() + 1,
-              day: filters.checkOut.getDate(),
-              year: filters.checkOut.getFullYear(),
-            }
-          : null,
-      };
-
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/search-filters`,
         {
@@ -214,7 +196,6 @@ export function SearchFilters({ onSearch, isLoading }: SearchFiltersProps) {
       }
 
       const data = await response.json();
-      console.log(data);
 
       const results: SearchResult = {
         airbnb: data.results?.airbnb,
@@ -222,10 +203,10 @@ export function SearchFilters({ onSearch, isLoading }: SearchFiltersProps) {
       };
 
       setSearchResults([results]);
-      onSearch(filters);
     } catch (error) {
       console.error("Error sending filter data:", error);
-      onSearch(filters);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -635,120 +616,131 @@ export function SearchFilters({ onSearch, isLoading }: SearchFiltersProps) {
         <div className="mt-8">
           <div className="grid gap-6 md:grid-cols-2 max-w-[1000px] mx-auto">
             {/* Airbnb Listing */}
-            {searchResults[0].airbnb && searchResults[0].airbnb.cheapest ? (
+            {searchResults[0].airbnb ? (
               <div className="max-w-[600px] justify-self-center w-full">
-                <h2 className="text-2xl font-bold mb-4">Listado de Airbnb</h2>
-                <Card className="overflow-hidden">
-                  <div className="relative">
-                    <div className="absolute top-0 left-0 right-0 bg-black bg-opacity-50 text-white px-4 py-2 z-10">
-                      Mejor Oferta de Airbnb
+                {searchResults[0].airbnb.cheapest["Title"] ? (
+                  <Card className="overflow-hidden">
+                    <div className="relative">
+                      <div className="absolute top-0 left-0 right-0 bg-black bg-opacity-50 text-white px-4 py-2 z-10">
+                        Mejor Oferta de Airbnb
+                      </div>
+                      <div className="aspect-video relative">
+                        {searchResults[0].airbnb.cheapest["Picture"] ? (
+                          <Image
+                            src={searchResults[0].airbnb.cheapest["Picture"]}
+                            alt={
+                              searchResults[0].airbnb.cheapest["Name"] ||
+                              "Imagen no disponible"
+                            }
+                            className="object-cover w-full h-full"
+                            layout="fill"
+                          />
+                        ) : (
+                          <div className="h-full w-full bg-gray-200 flex items-center justify-center">
+                            <span>Imagen no disponible</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div className="aspect-video relative">
-                      {searchResults[0].airbnb.cheapest["Picture"] ? (
-                        <Image
-                          src={searchResults[0].airbnb.cheapest["Picture"]}
-                          alt={
-                            searchResults[0].airbnb.cheapest["Name"] ||
-                            "Imagen no disponible"
-                          }
-                          className="object-cover w-full h-full"
-                          layout="fill"
-                        />
-                      ) : (
-                        <div className="h-full w-full bg-gray-200 flex items-center justify-center">
-                          <span>Imagen no disponible</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <CardContent className="p-4">
-                    {searchResults[0].airbnb.cheapest["Name"] && (
+                    <CardContent className="p-4">
                       <h3 className="font-semibold text-lg mb-2">
                         {searchResults[0].airbnb.cheapest["Name"]}
                       </h3>
-                    )}
-                    {searchResults[0].airbnb.cheapest["Title"] && (
-                      <p className="text-sm text-gray-600 mb-2">
-                        {searchResults[0].airbnb.cheapest["Title"]}
-                      </p>
-                    )}
-                    {searchResults[0].airbnb.cheapest["Average Rating"] && (
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-sm">
-                          Calificación:{" "}
-                          {searchResults[0].airbnb.cheapest["Average Rating"]}
-                        </span>
-                      </div>
-                    )}
-                    <div className="flex flex-col gap-1 mb-2">
-                      {searchResults[0].airbnb.cheapest["Discounted Price"] && (
-                        <span className="text-green-600 font-medium">
-                          Descuento:{" "}
-                          {searchResults[0].airbnb.cheapest["Discounted Price"]}
-                        </span>
+                      {searchResults[0].airbnb.cheapest["Title"] && (
+                        <p className="text-sm text-gray-600 mb-2">
+                          {searchResults[0].airbnb.cheapest["Title"]}
+                        </p>
                       )}
-                      {searchResults[0].airbnb.cheapest["Original Price"] && (
-                        <span className="text-gray-500 line-through">
-                          Original:{" "}
-                          {searchResults[0].airbnb.cheapest["Original Price"]}
-                        </span>
+                      {searchResults[0].airbnb.cheapest["Average Rating"] && (
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-sm">
+                            Calificación:{" "}
+                            {searchResults[0].airbnb.cheapest["Average Rating"]}
+                          </span>
+                        </div>
                       )}
-                      {searchResults[0].airbnb.cheapest["Total Price"] && (
-                        <span className="font-bold text-lg">
-                          Total:{" "}
-                          {searchResults[0].airbnb.cheapest["Total Price"]}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center justify-between mt-4 space-x-2">
-                      <div className="flex space-x-2">
-                        {searchResults[0].airbnb.cheapest["Listing URL"] && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() =>
-                              window.open(
-                                searchResults[0].airbnb.cheapest["Listing URL"],
-                                "_blank"
-                              )
+                      <div className="flex flex-col gap-1 mb-2">
+                        {searchResults[0].airbnb.cheapest[
+                          "Discounted Price"
+                        ] && (
+                          <span className="text-green-600 font-medium">
+                            Descuento:{" "}
+                            {
+                              searchResults[0].airbnb.cheapest[
+                                "Discounted Price"
+                              ]
                             }
-                          >
-                            Ver en Airbnb
-                          </Button>
+                          </span>
                         )}
-                        {searchResults[0].airbnb.cheapest["Picture"] && (
-                          <Button
-                            variant="default"
-                            size="sm"
-                            className="flex items-center gap-2 bg-green-500 text-white border border-green-600 hover:bg-green-600"
-                            onClick={() =>
-                              window.open(
-                                generateWhatsAppLink(
-                                  searchResults[0].airbnb.cheapest,
-                                  filters
-                                ),
-                                "_blank"
-                              )
-                            }
-                          >
-                            <Image
-                              src="/whatsapp-icon.svg"
-                              alt="WhatsApp"
-                              className="h-4 w-4"
-                              width={16}
-                              height={16}
-                            />
-                            Confirmar Reserva
-                          </Button>
+                        {searchResults[0].airbnb.cheapest["Original Price"] && (
+                          <span className="text-gray-500 line-through">
+                            Original:{" "}
+                            {searchResults[0].airbnb.cheapest["Original Price"]}
+                          </span>
+                        )}
+                        {searchResults[0].airbnb.cheapest["Total Price"] && (
+                          <span className="font-bold text-lg">
+                            Total:{" "}
+                            {searchResults[0].airbnb.cheapest["Total Price"]}
+                          </span>
                         )}
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                      <div className="flex items-center justify-between mt-4 space-x-2">
+                        <div className="flex space-x-2">
+                          {searchResults[0].airbnb.cheapest["Listing URL"] && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                window.open(
+                                  searchResults[0].airbnb.cheapest[
+                                    "Listing URL"
+                                  ],
+                                  "_blank"
+                                )
+                              }
+                            >
+                              Ver en Airbnb
+                            </Button>
+                          )}
+                          {searchResults[0].airbnb.cheapest["Picture"] && (
+                            <Button
+                              variant="default"
+                              size="sm"
+                              className="flex items-center gap-2 bg-green-500 text-white border border-green-600 hover:bg-green-600"
+                              onClick={() =>
+                                window.open(
+                                  generateWhatsAppLink(
+                                    searchResults[0].airbnb.cheapest,
+                                    filters
+                                  ),
+                                  "_blank"
+                                )
+                              }
+                            >
+                              <Image
+                                src="/whatsapp-icon.svg"
+                                alt="WhatsApp"
+                                className="h-4 w-4"
+                                width={16}
+                                height={16}
+                              />
+                              Confirmar Reserva
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <p>
+                    No se encontraron propiedades en Airbnb, intenta cambiar los
+                    filtros o vuelve a intentarlo, gracias.
+                  </p>
+                )}
               </div>
             ) : (
               <div className="max-w-[600px] justify-self-center w-full">
-                <h2 className="text-2xl font-bold mb-4">Listado de Airbnb</h2>
                 <p>
                   No se encontraron propiedades en Airbnb, intenta cambiar los
                   filtros o vuelve a intentarlo, gracias.
@@ -759,130 +751,139 @@ export function SearchFilters({ onSearch, isLoading }: SearchFiltersProps) {
             {/* Booking.com Listing */}
             {searchResults[0].booking ? (
               <div className="max-w-[600px] justify-self-center w-full">
-                <h2 className="text-2xl font-bold mb-4">
-                  Listado de Booking.com
-                </h2>
-                <Card className="overflow-hidden">
-                  <div className="relative">
-                    <div className="absolute top-0 left-0 right-0 bg-black bg-opacity-50 text-white px-4 py-2 z-10">
-                      Mejor Oferta de Booking.com
+                {searchResults[0].booking.cheapest["Title"] ? (
+                  <Card className="overflow-hidden">
+                    <div className="relative">
+                      <div className="absolute top-0 left-0 right-0 bg-black bg-opacity-50 text-white px-4 py-2 z-10">
+                        Mejor Oferta de Booking.com
+                      </div>
+                      <div className="aspect-video relative">
+                        {searchResults[0].booking.cheapest["Picture"] ? (
+                          <Image
+                            src={searchResults[0].booking.cheapest["Picture"]}
+                            alt={
+                              searchResults[0].booking.cheapest["Name"] ||
+                              "Imagen no disponible"
+                            }
+                            className="object-cover w-full h-full"
+                            layout="fill"
+                          />
+                        ) : (
+                          <div className="h-full w-full bg-gray-200 flex items-center justify-center">
+                            <span>Imagen no disponible</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div className="aspect-video relative">
-                      {searchResults[0].booking.cheapest["Picture"] ? (
-                        <Image
-                          src={searchResults[0].booking.cheapest["Picture"]}
-                          alt={
-                            searchResults[0].booking.cheapest["Name"] ||
-                            "Imagen no disponible"
-                          }
-                          className="object-cover w-full h-full"
-                          layout="fill"
-                        />
-                      ) : (
-                        <div className="h-full w-full bg-gray-200 flex items-center justify-center">
-                          <span>Imagen no disponible</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <CardContent className="p-4">
-                    {searchResults[0].booking.cheapest["Name"] && (
+                    <CardContent className="p-4">
                       <h3 className="font-semibold text-lg mb-2">
                         {searchResults[0].booking.cheapest["Name"]}
                       </h3>
-                    )}
-                    {searchResults[0].booking.cheapest["Title"] && (
-                      <p className="text-sm text-gray-600 mb-2">
-                        {searchResults[0].booking.cheapest["Title"]}
-                      </p>
-                    )}
-                    {searchResults[0].booking.cheapest["Average Rating"] && (
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-sm">
-                          Calificación:{" "}
-                          {searchResults[0].booking.cheapest["Average Rating"]}
-                        </span>
-                      </div>
-                    )}
-                    <div className="flex flex-col gap-1 mb-2">
-                      {searchResults[0].booking.cheapest[
-                        "Discounted Price"
-                      ] && (
-                        <span className="text-green-600 font-medium">
-                          Descuento:{" "}
-                          {
-                            searchResults[0].booking.cheapest[
-                              "Discounted Price"
-                            ]
-                          }
-                        </span>
+                      {searchResults[0].booking.cheapest["Title"] && (
+                        <p className="text-sm text-gray-600 mb-2">
+                          {searchResults[0].booking.cheapest["Title"]}
+                        </p>
                       )}
-                      {searchResults[0].booking.cheapest["Original Price"] && (
-                        <span className="text-gray-500 line-through">
-                          Original:{" "}
-                          {searchResults[0].booking.cheapest["Original Price"]}
-                        </span>
-                      )}
-                      {searchResults[0].booking.cheapest["Total Price"] && (
-                        <span className="font-bold text-lg">
-                          Total:{" "}
-                          {searchResults[0].booking.cheapest["Total Price"]}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center justify-between mt-4 space-x-2">
-                      <div className="flex space-x-2">
-                        {searchResults[0].booking.cheapest["Listing URL"] && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() =>
-                              window.open(
-                                searchResults[0].booking.cheapest[
-                                  "Listing URL"
-                                ],
-                                "_blank"
-                              )
+                      {searchResults[0].booking.cheapest["Average Rating"] && (
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-sm">
+                            Calificación:{" "}
+                            {
+                              searchResults[0].booking.cheapest[
+                                "Average Rating"
+                              ]
                             }
-                          >
-                            Ver en Booking.com
-                          </Button>
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex flex-col gap-1 mb-2">
+                        {searchResults[0].booking.cheapest[
+                          "Discounted Price"
+                        ] && (
+                          <span className="text-green-600 font-medium">
+                            Descuento:{" "}
+                            {
+                              searchResults[0].booking.cheapest[
+                                "Discounted Price"
+                              ]
+                            }
+                          </span>
                         )}
-                        {searchResults[0].booking.cheapest["Picture"] && (
-                          <Button
-                            variant="default"
-                            size="sm"
-                            className="flex items-center gap-2 bg-green-500 text-white border border-green-600 hover:bg-green-600"
-                            onClick={() =>
-                              window.open(
-                                generateWhatsAppLink(
-                                  searchResults[0].booking.cheapest,
-                                  filters
-                                ),
-                                "_blank"
-                              )
+                        {searchResults[0].booking.cheapest[
+                          "Original Price"
+                        ] && (
+                          <span className="text-gray-500 line-through">
+                            Original:{" "}
+                            {
+                              searchResults[0].booking.cheapest[
+                                "Original Price"
+                              ]
                             }
-                          >
-                            <Image
-                              src="/whatsapp-icon.svg"
-                              alt="WhatsApp"
-                              className="h-4 w-4"
-                              width={16}
-                              height={16}
-                            />
-                            Confirmar Reserva
-                          </Button>
+                          </span>
+                        )}
+                        {searchResults[0].booking.cheapest["Total Price"] && (
+                          <span className="font-bold text-lg">
+                            Total:{" "}
+                            {searchResults[0].booking.cheapest["Total Price"]}
+                          </span>
                         )}
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                      <div className="flex items-center justify-between mt-4 space-x-2">
+                        <div className="flex space-x-2">
+                          {searchResults[0].booking.cheapest["Listing URL"] && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                window.open(
+                                  searchResults[0].booking.cheapest[
+                                    "Listing URL"
+                                  ],
+                                  "_blank"
+                                )
+                              }
+                            >
+                              Ver en Booking.com
+                            </Button>
+                          )}
+                          {searchResults[0].booking.cheapest["Picture"] && (
+                            <Button
+                              variant="default"
+                              size="sm"
+                              className="flex items-center gap-2 bg-green-500 text-white border border-green-600 hover:bg-green-600"
+                              onClick={() =>
+                                window.open(
+                                  generateWhatsAppLink(
+                                    searchResults[0].booking.cheapest,
+                                    filters
+                                  ),
+                                  "_blank"
+                                )
+                              }
+                            >
+                              <Image
+                                src="/whatsapp-icon.svg"
+                                alt="WhatsApp"
+                                className="h-4 w-4"
+                                width={16}
+                                height={16}
+                              />
+                              Confirmar Reserva
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <p>
+                    No se encontraron propiedades en Booking.com, intenta
+                    cambiar los filtros o vuelve a intentarlo, gracias.
+                  </p>
+                )}
               </div>
             ) : (
               <div className="max-w-[600px] justify-self-center w-full">
-                <h2 className="text-2xl font-bold mb-4">
-                  Listado de Booking.com
-                </h2>
                 <p>
                   No se encontraron propiedades en Booking.com, intenta cambiar
                   los filtros o vuelve a intentarlo, gracias.

@@ -8,6 +8,7 @@ export async function POST(request: Request) {
     //http://localhost:8000/scrape
     //https://7dc9-119-73-100-76.ngrok-free.app
     // Forward the filters to the FastAPI backend
+    // console.log(filters);
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_SCRAPER_URL}/scrape`,
       {
