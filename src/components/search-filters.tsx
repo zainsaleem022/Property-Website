@@ -172,10 +172,10 @@ export function SearchFilters() {
       ...filters,
       propertyType: translatedPropertyTypes,
       checkIn: filters.checkIn
-        ? { date: filters.checkIn.toISOString() }
+        ? { date: format(filters.checkIn, "yyyy-MM-dd") }
         : undefined,
       checkOut: filters.checkOut
-        ? { date: filters.checkOut.toISOString() }
+        ? { date: format(filters.checkOut, "yyyy-MM-dd") }
         : undefined,
     };
 
