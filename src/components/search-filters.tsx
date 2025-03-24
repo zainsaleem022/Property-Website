@@ -95,7 +95,7 @@ const generateWhatsAppLink = (listing: Listing, filters: SearchFilters) => {
       listing["Listing URL"] || ""
     )}`;
 
-  return `https://api.whatsapp.com/send?phone=34910916791&text=${message}`;
+  return `https://api.whatsapp.com/send?phone=351910190406&text=${message}`;
 };
 
 export function SearchFilters() {
