@@ -10,7 +10,7 @@ export async function POST(request: Request) {
     // Forward the filters to the FastAPI backend
     // console.log(filters);
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_SCRAPER_URL}/scrape`,
+      `https://liked-basically-mongoose.ngrok-free.app/scrape`,
       {
         method: "POST",
         headers: {
