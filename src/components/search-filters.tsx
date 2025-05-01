@@ -98,6 +98,19 @@ const generateWhatsAppLink = (listing: Listing, filters: SearchFilters) => {
   return `https://api.whatsapp.com/send?phone=351910190406&text=${message}`;
 };
 
+const modifyBookingUrl = (url: string): string => {
+  if (!url || !url.includes("booking.com")) return url;
+
+  try {
+    const urlObj = new URL(url);
+    urlObj.searchParams.set("aid", "817353");
+    return urlObj.toString();
+  } catch (e) {
+    console.error("Error modifying booking URL:", e);
+    return url;
+  }
+};
+
 export function SearchFilters() {
   const [filters, setFilters] = useState<SearchFilters>({
     destination: "",
@@ -566,9 +579,11 @@ export function SearchFilters() {
                               size="sm"
                               onClick={() =>
                                 window.open(
-                                  searchResults[0].booking.cheapest[
-                                    "Listing URL"
-                                  ],
+                                  modifyBookingUrl(
+                                    searchResults[0].booking.cheapest[
+                                      "Listing URL"
+                                    ] || ""
+                                  ),
                                   "_blank"
                                 )
                               }
@@ -694,9 +709,11 @@ export function SearchFilters() {
                               size="sm"
                               onClick={() =>
                                 window.open(
-                                  searchResults[0].booking.cheapest[
-                                    "Listing URL"
-                                  ],
+                                  modifyBookingUrl(
+                                    searchResults[0].booking.cheapest[
+                                      "Listing URL"
+                                    ] || ""
+                                  ),
                                   "_blank"
                                 )
                               }

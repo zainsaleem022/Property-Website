@@ -7,7 +7,9 @@ export async function POST(request: Request) {
     //https://airbnb-booking-com-scraper.onrender.com/scrape
     //http://localhost:8000/scrape
     //https://7dc9-119-73-100-76.ngrok-free.app
+    // https://liked-basically-mongoose.ngrok-free.app
     // Forward the filters to the FastAPI backend
+    //${process.env.NEXT_PUBLIC_SCRAPER_URL}/scrape
     // console.log(filters);
     const response = await fetch(
       `https://liked-basically-mongoose.ngrok-free.app/scrape`,
